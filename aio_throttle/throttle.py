@@ -23,15 +23,15 @@ class ThrottleResponse:
 
 @dataclass(frozen=True)
 class ThrottleStats:
-    __slots__ = ["available", "queued", "by_consumers"]
+    __slots__ = ["available", "queued", "consumers_used_capacity"]
 
     available: int
     queued: int
-    by_consumers: Mapping[str, int]
+    consumers_used_capacity: Mapping[str, int]
 
 
 class Throttler:
-    __slots__ = ["_semaphore", "_queue_limit", "_capacity_limit", "_consumers_requests", "_consumer_quota"]
+    __slots__ = ["_semaphore", "_queue_limit", "_capacity_limit", "_consumers_used_capacity", "_consumer_quota"]
 
     def __init__(
         self, capacity_limit: int, queue_limit: int = 0, consumer_quota: Optional[ThrottleConsumerQuota] = None
@@ -44,31 +44,31 @@ class Throttler:
         self._capacity_limit: int = capacity_limit
         self._queue_limit: int = queue_limit
         self._semaphore: LifoSemaphore = LifoSemaphore(capacity_limit)
-        self._consumers_requests: DefaultDict[str, int] = defaultdict(int)
+        self._consumers_used_capacity: DefaultDict[str, int] = defaultdict(int)
         self._consumer_quota = consumer_quota or StaticThrottleConsumerQuota(True)
 
     def _try_accept_quotas(self, request: Optional[ThrottleRequest] = None) -> bool:
         if request is None:
             return True
 
-        consumer_used = self._consumers_requests[request.consumer]
+        consumer_used = self._consumers_used_capacity[request.consumer]
         return self._consumer_quota.accept(consumer_used, self._capacity_limit)
 
     def _increment_counters(self, request: Optional[ThrottleRequest]) -> None:
         if request is None:
             return
 
-        self._consumers_requests[request.consumer] += 1
+        self._consumers_used_capacity[request.consumer] += 1
 
     def _decrement_counters(self, request: Optional[ThrottleRequest]) -> None:
         if request is None:
             return
 
-        self._consumers_requests[request.consumer] -= 1
+        self._consumers_used_capacity[request.consumer] -= 1
 
     @property
     def stats(self) -> ThrottleStats:
-        return ThrottleStats(self._semaphore.available, self._semaphore.waiting, self._consumers_requests)
+        return ThrottleStats(self._semaphore.available, self._semaphore.waiting, self._consumers_used_capacity)
 
     @asynccontextmanager
     async def throttle(self, request: Optional[ThrottleRequest] = None) -> AsyncIterator[ThrottleResponse]:
