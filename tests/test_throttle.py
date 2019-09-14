@@ -30,7 +30,7 @@ async def test_throttle_without_queue():
 
 @pytest.mark.asyncio
 @pytest.mark.timeout(1)
-async def test_throttle_with_always_reject_consumer_quota():
+async def test_throttle_with_rejecting_consumer_quota():
     throttler = Throttler(1, 1, StaticThrottleConsumerQuota(False))
     assert throttler.stats == stats(1, 0, {})
     async with throttler.throttle(request) as t1:
