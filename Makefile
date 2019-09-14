@@ -5,7 +5,7 @@ install-dev:
 
 
 black: install-dev
-	@black aio_throttle
+	@black --line-length 120 --target-version py37 aio_throttle tests
 
 
 mypy: flake8
@@ -17,7 +17,7 @@ flake8: black
 
 
 test: mypy
-	@python -m pytest tests/
+	@python -m pytest -vv tests/
 
 
 .PHONY: all mypy flake8 black install-dev test
