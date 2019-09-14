@@ -10,7 +10,7 @@ class ThrottleConsumerQuota(ABC):
         ...
 
 
-class StaticThrottleConsumerQuota(ThrottleConsumerQuota):
+class StaticConsumerQuota(ThrottleConsumerQuota):
     __slots__ = ["_accept"]
 
     def __init__(self, accept: bool):
@@ -20,7 +20,7 @@ class StaticThrottleConsumerQuota(ThrottleConsumerQuota):
         return self._accept
 
 
-class CompositeThrottleConsumerQuota(ThrottleConsumerQuota):
+class CompositeConsumerQuota(ThrottleConsumerQuota):
     __slots__ = ["_quotas"]
 
     def __init__(self, quotas: List[ThrottleConsumerQuota]):

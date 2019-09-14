@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import AsyncIterator, Optional, DefaultDict, Mapping
 
 from .internals import LifoSemaphore
-from .quotas import ThrottleConsumerQuota, StaticThrottleConsumerQuota
+from .quotas import ThrottleConsumerQuota, StaticConsumerQuota
 
 
 @dataclass(frozen=True)
@@ -45,7 +45,7 @@ class Throttler:
         self._queue_limit: int = queue_limit
         self._semaphore: LifoSemaphore = LifoSemaphore(capacity_limit)
         self._consumers_used_capacity: DefaultDict[str, int] = defaultdict(int)
-        self._consumer_quota = consumer_quota or StaticThrottleConsumerQuota(True)
+        self._consumer_quota = consumer_quota or StaticConsumerQuota(True)
 
     def _try_accept_quotas(self, request: Optional[ThrottleRequest] = None) -> bool:
         if request is None:
