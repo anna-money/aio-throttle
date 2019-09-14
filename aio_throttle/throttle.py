@@ -52,7 +52,7 @@ class Throttler:
             return True
 
         consumer_used = self._consumers_used_capacity[request.consumer]
-        return self._consumer_quota.accept(consumer_used, self._capacity_limit)
+        return self._consumer_quota.accept(request.consumer, consumer_used, self._capacity_limit)
 
     def _increment_counters(self, request: Optional[ThrottleRequest]) -> None:
         if request is None:
@@ -80,9 +80,7 @@ class Throttler:
             finally:
                 self._decrement_counters(request)
                 self._semaphore.release()
-        elif self._semaphore.waiting >= self._queue_limit:
-            yield ThrottleResponse(False)
-        elif not self._try_accept_quotas(request):
+        elif self._semaphore.waiting >= self._queue_limit or not self._try_accept_quotas(request):
             yield ThrottleResponse(False)
         else:
             await self._semaphore.acquire()
