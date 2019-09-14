@@ -1,28 +1,10 @@
-from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import AsyncIterator, Optional, DefaultDict, List, Mapping
+from typing import AsyncIterator, Optional, DefaultDict, Mapping
 
 from .internals import LifoSemaphore
-
-
-class ThrottleConsumerQuota(ABC):
-    __slots__: List[str] = []
-
-    @abstractmethod
-    def accept(self, consumer_capacity: int, capacity_limit: int) -> bool:
-        ...
-
-
-class StaticThrottleConsumerQuota(ThrottleConsumerQuota):
-    __slots__ = ["_accept"]
-
-    def __init__(self, accept: bool):
-        self._accept = accept
-
-    def accept(self, consumer_capacity: int, capacity_limit: int) -> bool:
-        return self._accept
+from .quotas import ThrottleConsumerQuota, StaticThrottleConsumerQuota
 
 
 @dataclass(frozen=True)
