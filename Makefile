@@ -17,7 +17,7 @@ flake8: black
 
 
 test: mypy
-	@python -m pytest -vv tests/
+	@python -m pytest -vv --rootdir tests .
 
 
 .PHONY: all mypy flake8 black install-dev test
