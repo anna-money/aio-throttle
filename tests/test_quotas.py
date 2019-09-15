@@ -1,6 +1,6 @@
 import pytest
 
-from aio_throttle.quotas import MaxFractionConsumerQuota
+from aio_throttle import MaxFractionConsumerQuota
 
 
 @pytest.mark.parametrize(
