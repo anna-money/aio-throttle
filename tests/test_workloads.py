@@ -5,8 +5,8 @@ from collections import Counter
 
 import pytest
 
-from aio_throttle import Throttler, ThrottleRequest
 from aio_throttle import MaxFractionConsumerQuota
+from aio_throttle import Throttler, ThrottleRequest
 
 DELAY = 1
 SUCCEED = "+"
@@ -50,11 +50,11 @@ class Server:
 )
 async def test_simple_workload(capacity_limit, queue_limit, succeed_count, failed_count, multiplier):
     server = Server(DELAY, Throttler(capacity_limit, queue_limit))
-    start = time.monotonic()
 
     handle_tasks = list(map(lambda x: server.handle(), range(0, succeed_count + failed_count)))
-    statuses = await gather(*handle_tasks)
 
+    start = time.monotonic()
+    statuses = await gather(*handle_tasks)
     end = time.monotonic()
 
     counter = Counter(statuses)
@@ -65,24 +65,74 @@ async def test_simple_workload(capacity_limit, queue_limit, succeed_count, faile
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "capacity_limit, queue_limit, max_any_consumer_fraction, succeed_count, failed_count, multiplier",
-    [(4, 0, 0.25, 1, 3, 1), (4, 0, 0.5, 2, 2, 1), (4, 0, 0.75, 3, 1, 1)],
+    "capacity_limit, max_any_consumer_fraction, succeed_count, failed_count, multiplier",
+    [(4, 0.25, 1, 3, 1), (4, 0.5, 2, 2, 1), (4, 0.75, 3, 1, 1)],
 )
 async def test_any_consumer_quota_workload(
-    capacity_limit, queue_limit, max_any_consumer_fraction, succeed_count, failed_count, multiplier
+    capacity_limit, max_any_consumer_fraction, succeed_count, failed_count, multiplier
 ):
     consumer_quotas = [MaxFractionConsumerQuota(max_any_consumer_fraction)]
-    throttler = Throttler(capacity_limit, queue_limit, consumer_quotas)
+    throttler = Throttler(capacity_limit, 0, consumer_quotas)
     server = Server(DELAY, throttler)
+    handle_tasks = list(map(lambda x: server.handle("consumer"), range(0, succeed_count + failed_count)))
 
     start = time.monotonic()
-
-    handle_tasks = list(map(lambda x: server.handle("consumer"), range(0, succeed_count + failed_count)))
     statuses = await gather(*handle_tasks)
-
     end = time.monotonic()
 
     counter = Counter(statuses)
     assert counter[SUCCEED] == succeed_count
     assert counter[FAILED] == failed_count
+    assert multiplier * DELAY <= end - start <= (1.1 * multiplier * DELAY)
+
+
+FIRST_CONSUMER = "first"
+SECOND_CONSUMER = "second"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "capacity_limit, max_consumer_fractions, first_consumer_counts, second_consumer_counts, multiplier",
+    [(4, (0.25, 0.75), (1, 3), (3, 1), 1), (4, (0.50, 0.50), (2, 2), (2, 2), 1), (4, (0.75, 0.25), (3, 1), (1, 3), 1)],
+)
+async def test_consumers_quota_workload(
+    capacity_limit, max_consumer_fractions, first_consumer_counts, second_consumer_counts, multiplier
+):
+    max_first_consumer_fraction, max_second_consumer_fraction = max_consumer_fractions
+    first_consumer_succeed_count, first_consumer_failed_count = first_consumer_counts
+    second_consumer_succeed_count, second_consumer_failed_count = second_consumer_counts
+    consumer_quotas = [
+        MaxFractionConsumerQuota(max_first_consumer_fraction, FIRST_CONSUMER),
+        MaxFractionConsumerQuota(max_second_consumer_fraction, SECOND_CONSUMER),
+    ]
+    throttler = Throttler(capacity_limit, 0, consumer_quotas)
+    server = Server(DELAY, throttler)
+
+    first_consumer_handle_tasks = list(
+        map(
+            lambda x: server.handle(FIRST_CONSUMER),
+            range(0, first_consumer_succeed_count + first_consumer_failed_count),
+        )
+    )
+    second_consumer_handle_tasks = list(
+        map(
+            lambda x: server.handle(SECOND_CONSUMER),
+            range(0, second_consumer_succeed_count + second_consumer_failed_count),
+        )
+    )
+
+    start = time.monotonic()
+    first_consumer_statuses, second_consumer_statuses = await gather(
+        gather(*first_consumer_handle_tasks), gather(*second_consumer_handle_tasks)
+    )
+    end = time.monotonic()
+
+    counter = Counter(first_consumer_statuses)
+    assert counter[SUCCEED] == first_consumer_succeed_count
+    assert counter[FAILED] == first_consumer_failed_count
+
+    counter = Counter(second_consumer_statuses)
+    assert counter[SUCCEED] == second_consumer_succeed_count
+    assert counter[FAILED] == second_consumer_failed_count
+
     assert multiplier * DELAY <= end - start <= (1.1 * multiplier * DELAY)
