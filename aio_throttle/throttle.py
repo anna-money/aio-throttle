@@ -84,13 +84,11 @@ class Throttler:
 
     def _check_queue(self, priority: Optional[ThrottlePriority] = None) -> ThrottleResult:
         queue_size = self._semaphore.waiting
-        queue_full = (
-            queue_size > 0
-            and priority == ThrottlePriority.SHEDDABLE
-            or queue_size >= self._queue_limit
-            and self._semaphore.available == 0
-        )
-        return ThrottleResult.REJECTED_FULL_QUEUE if queue_full else ThrottleResult.ACCEPTED
+        if queue_size > 0 and priority == ThrottlePriority.SHEDDABLE:
+            return ThrottleResult.REJECTED_FULL_QUEUE
+        if queue_size >= self._queue_limit and self._semaphore.available == 0:
+            return ThrottleResult.REJECTED_FULL_QUEUE
+        return ThrottleResult.ACCEPTED
 
     def _increment_counters(self, consumer: Optional[str] = None, priority: Optional[ThrottlePriority] = None) -> None:
         if priority is not None:
