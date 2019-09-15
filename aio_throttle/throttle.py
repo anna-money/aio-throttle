@@ -53,8 +53,8 @@ class Throttler:
         if request is None:
             return True
 
-        consumer_used = self._consumers_used_capacity[request.consumer]
-        return self._consumer_quota.accept(request.consumer, consumer_used + 1, self._capacity_limit)
+        consumer_used_capacity = self._consumers_used_capacity[request.consumer]
+        return self._consumer_quota.accept(request.consumer, consumer_used_capacity + 1, self._capacity_limit)
 
     def _will_queue_overflow(self) -> bool:
         return self._semaphore.waiting >= self._queue_limit and self._semaphore.available == 0
