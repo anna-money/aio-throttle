@@ -6,7 +6,7 @@ from collections import Counter
 import pytest
 
 from aio_throttle import MaxFractionConsumerQuota
-from aio_throttle import Throttler, ThrottleRequest
+from aio_throttle import Throttler
 
 DELAY = 1
 SUCCEED = "+"
@@ -21,10 +21,9 @@ class Server:
         self.delay = delay
 
     async def handle(self, consumer=None):
-        request = ThrottleRequest(consumer) if consumer else None
-        async with self.throttler.throttle(request) as response:
+        async with self.throttler.throttle(consumer) as result:
             logger.debug(self.throttler.stats)
-            if not response.accepted:
+            if not result:
                 return FAILED
             await sleep(self.delay)
             return SUCCEED
