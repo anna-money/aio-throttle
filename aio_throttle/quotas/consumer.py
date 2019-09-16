@@ -6,7 +6,7 @@ class ThrottleConsumerQuota(ABC):
     __slots__: List[str] = []
 
     @abstractmethod
-    def accept(self, consumer: str, consumer_capacity: int, capacity_limit: int) -> bool:
+    def can_be_accepted(self, consumer: str, consumer_capacity: int, capacity_limit: int) -> bool:
         ...
 
 
@@ -16,7 +16,7 @@ class StaticConsumerQuota(ThrottleConsumerQuota):
     def __init__(self, accept: bool):
         self._accept = accept
 
-    def accept(self, consumer: str, consumer_capacity: int, capacity_limit: int) -> bool:
+    def can_be_accepted(self, consumer: str, consumer_capacity: int, capacity_limit: int) -> bool:
         return self._accept
 
 
@@ -26,9 +26,9 @@ class CompositeConsumerQuota(ThrottleConsumerQuota):
     def __init__(self, quotas: List[ThrottleConsumerQuota]):
         self._quotas = quotas
 
-    def accept(self, consumer: str, consumer_capacity: int, capacity_limit: int) -> bool:
+    def can_be_accepted(self, consumer: str, consumer_capacity: int, capacity_limit: int) -> bool:
         for quota in self._quotas:
-            if not quota.accept(consumer, consumer_capacity, capacity_limit):
+            if not quota.can_be_accepted(consumer, consumer_capacity, capacity_limit):
                 return False
         return True
 
@@ -43,7 +43,7 @@ class MaxFractionConsumerQuota(ThrottleConsumerQuota):
         self._max_fraction = max_fraction
         self._consumer = consumer
 
-    def accept(self, consumer: str, consumer_used_capacity: int, capacity_limit: int) -> bool:
+    def can_be_accepted(self, consumer: str, consumer_used_capacity: int, capacity_limit: int) -> bool:
         if self._consumer is not None and self._consumer != consumer:
             return True
 

@@ -74,11 +74,11 @@ class Throttler:
     ) -> ThrottleResult:
         if priority is not None:
             priority_used_capacity = self._priorities_used_capacity[priority]
-            if not self._priority_quota.accept(priority, priority_used_capacity + 1, self._capacity_limit):
+            if not self._priority_quota.can_be_accepted(priority, priority_used_capacity + 1, self._capacity_limit):
                 return ThrottleResult.REJECTED_PRIORITY_QUOTA
         if consumer is not None:
             consumer_used_capacity = self._consumers_used_capacity[consumer]
-            if not self._consumer_quota.accept(consumer, consumer_used_capacity + 1, self._capacity_limit):
+            if not self._consumer_quota.can_be_accepted(consumer, consumer_used_capacity + 1, self._capacity_limit):
                 return ThrottleResult.REJECTED_CONSUMER_QUOTA
         return ThrottleResult.ACCEPTED
 

@@ -23,7 +23,7 @@ from aio_throttle.quotas.priority import MaxFractionPriorityQuota
 )
 def test_max_fraction_priority_quota_match(max_fraction, used, limit, accept):
     quota = MaxFractionPriorityQuota(max_fraction, ThrottlePriority.NORMAL)
-    assert accept == quota.accept(ThrottlePriority.NORMAL, used, limit)
+    assert accept == quota.can_be_accepted(ThrottlePriority.NORMAL, used, limit)
 
 
 @pytest.mark.parametrize(
@@ -41,4 +41,4 @@ def test_max_fraction_priority_quota_match(max_fraction, used, limit, accept):
 )
 def test_max_fraction_priority_quota_not_match(max_fraction, used, limit, accept):
     quota = MaxFractionPriorityQuota(max_fraction, ThrottlePriority.NORMAL)
-    assert accept == quota.accept(ThrottlePriority.CRITICAL, used, limit)
+    assert accept == quota.can_be_accepted(ThrottlePriority.CRITICAL, used, limit)
