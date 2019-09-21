@@ -1,6 +1,6 @@
 import pytest
 
-from aio_throttle import MaxFractionConsumerQuota
+from aio_throttle import MaxFractionCapacityQuota
 
 
 @pytest.mark.parametrize(
@@ -21,7 +21,7 @@ from aio_throttle import MaxFractionConsumerQuota
     ],
 )
 def test_max_fraction_any_consumer_quota(max_fraction, used, limit, accept):
-    assert accept == MaxFractionConsumerQuota(max_fraction).can_be_accepted("consumer", used, limit)
+    assert accept == MaxFractionCapacityQuota(max_fraction).can_be_accepted("consumer", used, limit)
 
 
 @pytest.mark.parametrize(
@@ -42,7 +42,7 @@ def test_max_fraction_any_consumer_quota(max_fraction, used, limit, accept):
     ],
 )
 def test_max_fraction_consumer_quota_match(max_fraction, used, limit, accept):
-    assert accept == MaxFractionConsumerQuota(max_fraction, "consumer").can_be_accepted("consumer", used, limit)
+    assert accept == MaxFractionCapacityQuota(max_fraction, "consumer").can_be_accepted("consumer", used, limit)
 
 
 @pytest.mark.parametrize(
@@ -59,4 +59,6 @@ def test_max_fraction_consumer_quota_match(max_fraction, used, limit, accept):
     ],
 )
 def test_max_fraction_consumer_quota_not_match(max_fraction, used, limit, accept):
-    assert accept == MaxFractionConsumerQuota(max_fraction, "consumer").can_be_accepted("yet_another_consumer", used, limit)
+    assert accept == MaxFractionCapacityQuota(max_fraction, "consumer").can_be_accepted(
+        "yet_another_consumer", used, limit
+    )

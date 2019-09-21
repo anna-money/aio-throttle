@@ -5,7 +5,7 @@ from collections import Counter
 
 import pytest
 
-from aio_throttle import ThrottlePriority, MaxFractionPriorityQuota, Throttler
+from aio_throttle import ThrottlePriority, MaxFractionCapacityQuota, Throttler
 
 DELAY = 1
 SUCCEED = "+"
@@ -38,8 +38,8 @@ class Server:
 async def test(capacity_limit, max_priority_fractions, normal_counts, critical_counts, multiplier):
     max_normal_fraction, max_critical_fraction = max_priority_fractions
     priority_quotas = [
-        MaxFractionPriorityQuota(max_normal_fraction, ThrottlePriority.NORMAL),
-        MaxFractionPriorityQuota(max_critical_fraction, ThrottlePriority.CRITICAL),
+        MaxFractionCapacityQuota(max_normal_fraction, ThrottlePriority.NORMAL),
+        MaxFractionCapacityQuota(max_critical_fraction, ThrottlePriority.CRITICAL),
     ]
     throttler = Throttler(capacity_limit, 0, [], priority_quotas)
     server = Server(DELAY, throttler)

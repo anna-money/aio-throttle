@@ -4,9 +4,14 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import AsyncIterator, Optional, DefaultDict, Mapping, List
 
-from .quotas.consumer import ThrottleConsumerQuota, CompositeConsumerQuota
-from .quotas.priority import ThrottlePriority, ThrottlePriorityQuota, CompositePriorityQuota
+from .quotas import ThrottleCapacityQuota, CompositeThrottleCapacityQuota, ThrottleQuota, CompositeThrottleQuota
 from .internals import LifoSemaphore
+
+
+class ThrottlePriority(str, Enum):
+    CRITICAL = "critical"
+    NORMAL = "normal"
+    SHEDDABLE = "sheddable"
 
 
 class ThrottleResult(str, Enum):
@@ -14,6 +19,7 @@ class ThrottleResult(str, Enum):
     REJECTED_FULL_QUEUE = "Rejected due because the queue is full"
     REJECTED_PRIORITY_QUOTA = "Rejected by a priority quota"
     REJECTED_CONSUMER_QUOTA = "Rejected by a consumer quota"
+    REJECTED_QUOTA = "Rejected by a quota"
 
     def __bool__(self) -> bool:
         return self == self.ACCEPTED
@@ -47,14 +53,16 @@ class Throttler:
         "_consumer_quota",
         "_priority_quota",
         "_priorities_used_capacity",
+        "_quota",
     ]
 
     def __init__(
         self,
         capacity_limit: int,
         queue_limit: int = 0,
-        consumer_quotas: Optional[List[ThrottleConsumerQuota]] = None,
-        priority_quotas: Optional[List[ThrottlePriorityQuota]] = None,
+        consumer_quotas: Optional[List[ThrottleCapacityQuota[str]]] = None,
+        priority_quotas: Optional[List[ThrottleCapacityQuota[ThrottlePriority]]] = None,
+        quotas: Optional[List[ThrottleQuota]] = None,
     ):
         if capacity_limit < 1:
             raise ValueError("Throttler capacity_limit value must be >= 1")
@@ -65,13 +73,17 @@ class Throttler:
         self._queue_limit: int = queue_limit
         self._semaphore: LifoSemaphore = LifoSemaphore(capacity_limit)
         self._consumers_used_capacity: DefaultDict[str, int] = defaultdict(int)
-        self._consumer_quota = CompositeConsumerQuota(consumer_quotas or [])
+        self._consumer_quota = CompositeThrottleCapacityQuota(consumer_quotas or [])
         self._priorities_used_capacity: DefaultDict[ThrottlePriority, int] = defaultdict(int)
-        self._priority_quota = CompositePriorityQuota(priority_quotas or [])
+        self._priority_quota = CompositeThrottleCapacityQuota(priority_quotas or [])
+        self._quota = CompositeThrottleQuota(quotas or [])
 
     def _check_quotas(
         self, consumer: Optional[str] = None, priority: Optional[ThrottlePriority] = None
     ) -> ThrottleResult:
+        if not self._quota.can_be_accepted():
+            return ThrottleResult.REJECTED_QUOTA
+
         if priority is not None:
             priority_used_capacity = self._priorities_used_capacity[priority]
             if not self._priority_quota.can_be_accepted(priority, priority_used_capacity + 1, self._capacity_limit):
