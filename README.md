@@ -7,12 +7,12 @@ Features:
 
 Example:
 ```python
-from aio_throttle import Throttler, MaxFractionConsumerQuota, MaxFractionPriorityQuota, ThrottlePriority, ThrottleResult
+from aio_throttle import Throttler, MaxFractionCapacityQuota, ThrottlePriority, ThrottleResult
 
 capacity_limit = 100
 queue_limit = 200
-consumer_quotas = [MaxFractionConsumerQuota(0.7)]
-priority_quotas = [MaxFractionPriorityQuota(0.9, ThrottlePriority.NORMAL)]
+consumer_quotas = [MaxFractionCapacityQuota(0.7)]
+priority_quotas = [MaxFractionCapacityQuota(0.9, ThrottlePriority.NORMAL)]
 throttler = Throttler(capacity_limit, queue_limit, consumer_quotas, priority_quotas)
 
 async with throttler.throttle(consumer, priority) as result:

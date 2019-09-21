@@ -5,7 +5,7 @@ from collections import Counter
 
 import pytest
 
-from aio_throttle import MaxFractionConsumerQuota
+from aio_throttle import MaxFractionCapacityQuota
 from aio_throttle import Throttler
 
 DELAY = 1
@@ -39,7 +39,7 @@ class Server:
 async def test_any_consumer_quota_workload(
     capacity_limit, max_any_consumer_fraction, succeed_count, failed_count, multiplier
 ):
-    consumer_quotas = [MaxFractionConsumerQuota(max_any_consumer_fraction)]
+    consumer_quotas = [MaxFractionCapacityQuota(max_any_consumer_fraction)]
     throttler = Throttler(capacity_limit, 0, consumer_quotas)
     server = Server(DELAY, throttler)
     handle_tasks = list(map(lambda x: server.handle("consumer"), range(0, succeed_count + failed_count)))
@@ -66,8 +66,8 @@ async def test_consumers_quota_workload(
     first_consumer_succeed_count, first_consumer_failed_count = first_consumer_counts
     second_consumer_succeed_count, second_consumer_failed_count = second_consumer_counts
     consumer_quotas = [
-        MaxFractionConsumerQuota(max_first_consumer_fraction, FIRST_CONSUMER),
-        MaxFractionConsumerQuota(max_second_consumer_fraction, SECOND_CONSUMER),
+        MaxFractionCapacityQuota(max_first_consumer_fraction, FIRST_CONSUMER),
+        MaxFractionCapacityQuota(max_second_consumer_fraction, SECOND_CONSUMER),
     ]
     throttler = Throttler(capacity_limit, 0, consumer_quotas)
     server = Server(DELAY, throttler)
