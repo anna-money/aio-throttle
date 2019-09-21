@@ -8,7 +8,7 @@ class LifoSemaphore:
 
     def __init__(self, initial: int = 1) -> None:
         if initial < 1:
-            raise ValueError("Semaphore initial value must be >= 0")
+            raise ValueError("LifoSemaphore initial value must be >= 0")
         self._limit = initial
         self._available = initial
         self._waiters: List[Future[None]] = []
@@ -52,6 +52,6 @@ class LifoSemaphore:
 
     def release(self) -> None:
         if self._available >= self._limit:
-            raise ValueError("Semaphore released too many times")
+            raise ValueError("LifoSemaphore released too many times")
         self._available += 1
         self._wake_up_next()
