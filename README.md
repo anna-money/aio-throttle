@@ -1,4 +1,4 @@
-This library is inspired by [this book](https://landing.google.com/sre/sre-book/chapters/handling-overload/).
+This library is inspired by [this book](https://landing.google.com/sre/sre-book/chapters/handling-overload/) and this implementation https://github.com/vostok/throttling.
 
 Features:
 1. Set capacity(max parallel requests) and queue(max queued requests) limits.
