@@ -114,6 +114,15 @@ class Throttler:
         if priority is not None:
             self._priorities_used_capacity[priority] -= 1
 
+    def _acquire_capacity_slot_no_wait(self) -> bool:
+        return self._semaphore.acquire_no_wait()
+
+    async def _acquire_capacity_slot(self) -> None:
+        await self._semaphore.acquire()
+
+    def _release_capacity_slot(self) -> None:
+        self._semaphore.release()
+
     @property
     def stats(self) -> ThrottleStats:
         return ThrottleStats(
@@ -132,25 +141,25 @@ class Throttler:
         check_queue_and_quotas_result = self._check_queue(priority) and self._check_quotas(consumer, priority)
         if not check_queue_and_quotas_result:
             yield check_queue_and_quotas_result
-        elif self._semaphore.acquire_no_wait():
+        elif self._acquire_capacity_slot_no_wait():
             try:
                 self._increment_counters(consumer, priority)
                 yield ThrottleResult.ACCEPTED
             finally:
                 self._decrement_counters(consumer, priority)
-                self._semaphore.release()
+                self._release_capacity_slot()
         else:
-            await self._semaphore.acquire()
+            await self._acquire_capacity_slot()
             check_quota_result = self._check_quotas(consumer, priority)
             if not check_quota_result:
                 try:
                     yield check_quota_result
                 finally:
-                    self._semaphore.release()
+                    self._release_capacity_slot()
             else:
                 try:
                     self._increment_counters(consumer, priority)
                     yield ThrottleResult.ACCEPTED
                 finally:
                     self._decrement_counters(consumer, priority)
-                    self._semaphore.release()
+                    self._release_capacity_slot()
