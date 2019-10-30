@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="aio-throttle",
-    version="1.2.0",
+    version="1.2.1",
     author="Yury Pliner",
     author_email="yury.pliner@gmail.com",
     description="A simple throttling package",

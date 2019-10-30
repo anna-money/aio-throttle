@@ -16,6 +16,15 @@ class ThrottlePriority(str, Enum):
     def __str__(self) -> str:
         return cast(str, self.value)
 
+    @staticmethod
+    def parse(value: Optional[str]) -> "ThrottlePriority":
+        if value is None:
+            return ThrottlePriority.NORMAL
+        try:
+            return ThrottlePriority(value.lower())
+        except ValueError:
+            return ThrottlePriority.NORMAL
+
 
 class ThrottleResult(str, Enum):
     ACCEPTED = "accepted"
