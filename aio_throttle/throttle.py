@@ -9,20 +9,20 @@ from .internals import LifoSemaphore
 
 
 class ThrottlePriority(str, Enum):
-    CRITICAL = "Critical"
-    NORMAL = "Normal"
-    SHEDDABLE = "Sheddable"
+    HIGH = "high"
+    NORMAL = "normal"
+    LOW = "low"
 
     def __str__(self) -> str:
         return cast(str, self.value)
 
 
 class ThrottleResult(str, Enum):
-    ACCEPTED = "Accepted"
-    REJECTED_DUE_TO_FULL_QUEUE = "Rejected due to full queue"
-    REJECTED_DUE_TO_PRIORITY_QUOTA = "Rejected due to priority quota"
-    REJECTED_DUE_TO_CONSUMER_QUOTA = "Rejected due to consumer quota"
-    REJECTED_DUE_TO_QUOTA = "Rejected due to quota"
+    ACCEPTED = "accepted"
+    REJECTED_DUE_TO_FULL_QUEUE = "rejected due to full queue"
+    REJECTED_DUE_TO_PRIORITY_QUOTA = "rejected due to priority quota"
+    REJECTED_DUE_TO_CONSUMER_QUOTA = "rejected due to consumer quota"
+    REJECTED_DUE_TO_QUOTA = "rejected due to quota"
 
     def __bool__(self) -> bool:
         return self == self.ACCEPTED
@@ -102,7 +102,7 @@ class Throttler:
 
     def _check_queue(self, priority: Optional[ThrottlePriority] = None) -> ThrottleResult:
         queue_size = self._semaphore.waiting
-        if queue_size > 0 and priority == ThrottlePriority.SHEDDABLE:
+        if queue_size > 0 and priority == ThrottlePriority.LOW:
             return ThrottleResult.REJECTED_DUE_TO_FULL_QUEUE
         if queue_size >= self._queue_limit and self._semaphore.available == 0:
             return ThrottleResult.REJECTED_DUE_TO_FULL_QUEUE
