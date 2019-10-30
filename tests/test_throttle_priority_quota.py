@@ -39,13 +39,13 @@ async def test(capacity_limit, max_priority_fractions, normal_counts, critical_c
     max_normal_fraction, max_critical_fraction = max_priority_fractions
     priority_quotas = [
         MaxFractionCapacityQuota(max_normal_fraction, ThrottlePriority.NORMAL),
-        MaxFractionCapacityQuota(max_critical_fraction, ThrottlePriority.CRITICAL),
+        MaxFractionCapacityQuota(max_critical_fraction, ThrottlePriority.HIGH),
     ]
     throttler = Throttler(capacity_limit, 0, [], priority_quotas)
     server = Server(DELAY, throttler)
 
     normal_tasks = list(map(lambda x: server.handle(ThrottlePriority.NORMAL), range(0, sum(normal_counts))))
-    critical_tasks = list(map(lambda x: server.handle(ThrottlePriority.CRITICAL), range(0, sum(critical_counts))))
+    critical_tasks = list(map(lambda x: server.handle(ThrottlePriority.HIGH), range(0, sum(critical_counts))))
 
     start = time.monotonic()
     normal_statuses, critical_statuses = await gather(gather(*normal_tasks), gather(*critical_tasks))
@@ -68,7 +68,7 @@ async def test_sheddable_queueing(capacity_limit, queue_limit, counts, multiplie
     throttler = Throttler(capacity_limit, queue_limit)
     server = Server(DELAY, throttler)
 
-    handle_tasks = list(map(lambda x: server.handle(ThrottlePriority.SHEDDABLE), range(0, sum(counts))))
+    handle_tasks = list(map(lambda x: server.handle(ThrottlePriority.LOW), range(0, sum(counts))))
     start = time.monotonic()
     statuses = await gather(*handle_tasks)
     end = time.monotonic()
