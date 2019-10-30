@@ -2,27 +2,33 @@ from collections import defaultdict
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from enum import Enum
-from typing import AsyncIterator, Optional, DefaultDict, Mapping, List
+from typing import AsyncIterator, Optional, DefaultDict, Mapping, List, cast
 
 from .quotas import ThrottleCapacityQuota, CompositeThrottleCapacityQuota, ThrottleQuota, CompositeThrottleQuota
 from .internals import LifoSemaphore
 
 
 class ThrottlePriority(str, Enum):
-    CRITICAL = "critical"
-    NORMAL = "normal"
-    SHEDDABLE = "sheddable"
+    CRITICAL = "Critical"
+    NORMAL = "Normal"
+    SHEDDABLE = "Sheddable"
+
+    def __str__(self) -> str:
+        return cast(str, self.value)
 
 
 class ThrottleResult(str, Enum):
     ACCEPTED = "Accepted"
-    REJECTED_FULL_QUEUE = "Rejected due because the queue is full"
-    REJECTED_PRIORITY_QUOTA = "Rejected by a priority quota"
-    REJECTED_CONSUMER_QUOTA = "Rejected by a consumer quota"
-    REJECTED_QUOTA = "Rejected by a quota"
+    REJECTED_DUE_TO_FULL_QUEUE = "Rejected due to full queue"
+    REJECTED_DUE_TO_PRIORITY_QUOTA = "Rejected due to priority quota"
+    REJECTED_DUE_TO_CONSUMER_QUOTA = "Rejected due to consumer quota"
+    REJECTED_DUE_TO_QUOTA = "Rejected due to quota"
 
     def __bool__(self) -> bool:
         return self == self.ACCEPTED
+
+    def __str__(self) -> str:
+        return cast(str, self.value)
 
 
 @dataclass(frozen=True)
@@ -82,24 +88,24 @@ class Throttler:
         self, consumer: Optional[str] = None, priority: Optional[ThrottlePriority] = None
     ) -> ThrottleResult:
         if not self._quota.can_be_accepted():
-            return ThrottleResult.REJECTED_QUOTA
+            return ThrottleResult.REJECTED_DUE_TO_QUOTA
 
         if priority is not None:
             priority_used_capacity = self._priorities_used_capacity[priority]
             if not self._priority_quota.can_be_accepted(priority, priority_used_capacity + 1, self._capacity_limit):
-                return ThrottleResult.REJECTED_PRIORITY_QUOTA
+                return ThrottleResult.REJECTED_DUE_TO_PRIORITY_QUOTA
         if consumer is not None:
             consumer_used_capacity = self._consumers_used_capacity[consumer]
             if not self._consumer_quota.can_be_accepted(consumer, consumer_used_capacity + 1, self._capacity_limit):
-                return ThrottleResult.REJECTED_CONSUMER_QUOTA
+                return ThrottleResult.REJECTED_DUE_TO_CONSUMER_QUOTA
         return ThrottleResult.ACCEPTED
 
     def _check_queue(self, priority: Optional[ThrottlePriority] = None) -> ThrottleResult:
         queue_size = self._semaphore.waiting
         if queue_size > 0 and priority == ThrottlePriority.SHEDDABLE:
-            return ThrottleResult.REJECTED_FULL_QUEUE
+            return ThrottleResult.REJECTED_DUE_TO_FULL_QUEUE
         if queue_size >= self._queue_limit and self._semaphore.available == 0:
-            return ThrottleResult.REJECTED_FULL_QUEUE
+            return ThrottleResult.REJECTED_DUE_TO_FULL_QUEUE
         return ThrottleResult.ACCEPTED
 
     def _increment_counters(self, consumer: Optional[str] = None, priority: Optional[ThrottlePriority] = None) -> None:
