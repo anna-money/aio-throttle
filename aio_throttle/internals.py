@@ -4,7 +4,7 @@ from typing import List
 
 
 class LifoSemaphore:
-    __slots__ = ["_limit", "_available", "_waiters", "_loop"]
+    __slots__ = ("_limit", "_available", "_waiters", "_loop")
 
     def __init__(self, initial: int = 1) -> None:
         if initial < 1:

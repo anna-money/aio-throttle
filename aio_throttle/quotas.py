@@ -6,7 +6,7 @@ TResource = TypeVar("TResource")
 
 
 class ThrottleCapacityQuota(Generic[TResource]):
-    __slots__: List[str] = []
+    __slots__ = ()
 
     @abstractmethod
     def can_be_accepted(self, resource: TResource, capacity_used: int, capacity_limit: int) -> bool:
@@ -14,7 +14,7 @@ class ThrottleCapacityQuota(Generic[TResource]):
 
 
 class CompositeThrottleCapacityQuota(ThrottleCapacityQuota[TResource]):
-    __slots__ = ["_quotas"]
+    __slots__ = ("_quotas",)
 
     def __init__(self, quotas: List[ThrottleCapacityQuota[TResource]]):
         self._quotas = quotas
@@ -27,7 +27,7 @@ class CompositeThrottleCapacityQuota(ThrottleCapacityQuota[TResource]):
 
 
 class MaxFractionCapacityQuota(ThrottleCapacityQuota[TResource]):
-    __slots__ = ["_max_fraction", "_matched_resource"]
+    __slots__ = ("_max_fraction", "_matched_resource")
 
     def __init__(self, max_fraction: float, resource: Optional[TResource] = None):
         if max_fraction < 0 or max_fraction > 1:
@@ -43,13 +43,15 @@ class MaxFractionCapacityQuota(ThrottleCapacityQuota[TResource]):
 
 
 class ThrottleQuota(ABC):
+    __slots__ = ()
+
     @abstractmethod
     def can_be_accepted(self) -> bool:
         ...
 
 
 class CompositeThrottleQuota(ThrottleQuota):
-    __slots__ = ["_quotas"]
+    __slots__ = ("_quotas",)
 
     def __init__(self, quotas: List[ThrottleQuota]):
         self._quotas = quotas
@@ -62,7 +64,7 @@ class CompositeThrottleQuota(ThrottleQuota):
 
 
 class RandomRejectThrottleQuota(ThrottleQuota):
-    __slots__ = ["_reject_probability", "_random"]
+    __slots__ = ("_reject_probability", "_random")
 
     def __init__(self, reject_probability: float, seed: Any = None):
         if reject_probability < 0 or reject_probability > 1:
