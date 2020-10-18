@@ -4,12 +4,12 @@ from prometheus_client import Counter, CollectorRegistry, REGISTRY
 
 from .abc import ThrottlerBase, ThrottlePriority, ThrottleResult, ThrottleStats
 
-__all__ = ["build_throttle_results_counter", "prometheus_aware_throttler", "PrometheusAwareThrottler"]
+__all__ = ("build_throttle_results_counter", "prometheus_aware_throttler", "PrometheusAwareThrottler")
 
 
-def prometheus_aware_throttler(*, throttle_result_counter: Counter) -> Callable[[ThrottlerBase], ThrottlerBase]:
+def prometheus_aware_throttler(*, throttle_results_counter: Counter) -> Callable[[ThrottlerBase], ThrottlerBase]:
     def wrap(throttler: ThrottlerBase) -> ThrottlerBase:
-        return PrometheusAwareThrottler(throttler, throttle_result_counter=throttle_result_counter)
+        return PrometheusAwareThrottler(throttler, throttle_results_counter=throttle_results_counter)
 
     return wrap
 
@@ -28,13 +28,13 @@ def build_throttle_results_counter(
 
 
 class PrometheusAwareThrottler(ThrottlerBase):
-    __slots__ = ("_throttler", "_throttle_result_counter")
+    __slots__ = ("_throttler", "_throttle_results_counter")
 
     def __init__(
-        self, throttler: ThrottlerBase, *, throttle_result_counter: Counter,
+        self, throttler: ThrottlerBase, *, throttle_results_counter: Counter,
     ):
         self._throttler = throttler
-        self._throttle_result_counter = throttle_result_counter
+        self._throttle_results_counter = throttle_results_counter
 
     @property
     def stats(self) -> ThrottleStats:
@@ -45,7 +45,7 @@ class PrometheusAwareThrottler(ThrottlerBase):
         self, *, consumer: Optional[str] = None, priority: Optional[ThrottlePriority] = None
     ) -> AsyncIterator[ThrottleResult]:
         async with self._throttler.throttle(consumer=consumer, priority=priority) as result:
-            self._throttle_result_counter.labels(
+            self._throttle_results_counter.labels(
                 throttle_consumer=consumer, throttle_priority=priority, throttle_result=result
             ).inc()
             yield result

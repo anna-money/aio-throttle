@@ -15,7 +15,9 @@ consumer_quotas = [MaxFractionCapacityQuota(0.7)]
 priority_quotas = [MaxFractionCapacityQuota(0.9, ThrottlePriority.NORMAL)]
 throttler = Throttler(capacity_limit, queue_limit, consumer_quotas, priority_quotas)
 
-async with throttler.throttle(consumer, priority) as result:
+
+consumer, priority = "yet another consumer", ThrottlePriority.HIGH
+async with throttler.throttle(consumer=consumer, priority=priority) as result:
     ... # check if result is ThrottleResult.ACCEPTED or not
 ```
 
@@ -38,7 +40,7 @@ async def ok(_: Request) -> Response:
 
 async def create_app() -> Application:
     app = web.Application(middlewares=[throttling_middleware()])
-    setup_throttling(app, extensions=[prometheus_aware_throttler(throttle_result_counter=throttle_results_counter)])
+    setup_throttling(app, extensions=[prometheus_aware_throttler(throttle_results_counter=throttle_results_counter)])
     app.router.add_get("/", ok)
     return app
 
