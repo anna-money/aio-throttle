@@ -1,7 +1,7 @@
 all: deps lint test
 
 deps:
-	@pip3 install -r requirements-dev.txt
+	@python3 -m pip install --upgrade pip && pip3 install -r requirements-dev.txt
 
 black:
 	@black --line-length 120 aio_throttle tests
