@@ -1,11 +1,10 @@
 from contextlib import asynccontextmanager
 from typing import Optional, AsyncIterator, Callable
-
-from prometheus_client import Counter
+from prometheus_client import Counter, CollectorRegistry, REGISTRY
 
 from .abc import ThrottlerBase, ThrottlePriority, ThrottleResult, ThrottleStats
 
-__all__ = ["prometheus_aware_throttler", "PrometheusAwareThrottler"]
+__all__ = ["build_throttle_results_counter", "prometheus_aware_throttler", "PrometheusAwareThrottler"]
 
 
 def prometheus_aware_throttler(*, throttle_result_counter: Counter) -> Callable[[ThrottlerBase], ThrottlerBase]:
@@ -13,6 +12,19 @@ def prometheus_aware_throttler(*, throttle_result_counter: Counter) -> Callable[
         return PrometheusAwareThrottler(throttler, throttle_result_counter=throttle_result_counter)
 
     return wrap
+
+
+def build_throttle_results_counter(
+    *, registry: CollectorRegistry = REGISTRY, namespace: str = "", subsystem: str = ""
+) -> Counter:
+    return Counter(
+        name="throttle_results",
+        documentation="Throttle result",
+        labelnames=("throttle_consumer", "throttle_priority", "throttle_result"),
+        namespace=namespace,
+        subsystem=subsystem,
+        registry=registry,
+    )
 
 
 class PrometheusAwareThrottler(ThrottlerBase):

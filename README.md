@@ -18,3 +18,30 @@ throttler = Throttler(capacity_limit, queue_limit, consumer_quotas, priority_quo
 async with throttler.throttle(consumer, priority) as result:
     ... # check if result is ThrottleResult.ACCEPTED or not
 ```
+
+Example of an integration with aiohttp and prometheus_client
+```python
+from aiohttp import web
+from aiohttp.web_app import Application
+from aiohttp.web_request import Request
+from aiohttp.web_response import Response
+
+from aio_throttle.aiohttp import throttling_middleware, setup_throttling
+from aio_throttle.prometheus import prometheus_aware_throttler, build_throttle_results_counter
+
+throttle_results_counter = build_throttle_results_counter()
+
+
+async def ok(_: Request) -> Response:
+    return Response()
+
+
+async def create_app() -> Application:
+    app = web.Application(middlewares=[throttling_middleware()])
+    setup_throttling(app, extensions=[prometheus_aware_throttler(throttle_result_counter=throttle_results_counter)])
+    app.router.add_get("/", ok)
+    return app
+
+
+web.run_app(create_app(), port=8080, access_log=None)
+```
