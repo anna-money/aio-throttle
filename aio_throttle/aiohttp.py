@@ -56,7 +56,7 @@ def throttling_middleware(
         throttler: ThrottlerBase = request.app["AIOTHROTTLER"]
         consumer = request.headers.get(consumer_header_name, "unknown").lower()
         priority = ThrottlePriority.parse(request.headers.get(priority_header_name))
-        async with throttler.throttle(consumer, priority) as throttle_result:
+        async with throttler.throttle(consumer=consumer, priority=priority) as throttle_result:
             if throttle_result:
                 return await handler(request)
 

@@ -65,6 +65,6 @@ class ThrottlerBase(ABC):
 
     @abstractmethod
     def throttle(
-        self, consumer: Optional[str] = None, priority: Optional[ThrottlePriority] = None
+        self, *, consumer: Optional[str] = None, priority: Optional[ThrottlePriority] = None
     ) -> AsyncContextManager[ThrottleResult]:
         ...

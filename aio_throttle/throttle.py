@@ -99,7 +99,7 @@ class Throttler(ThrottlerBase):
 
     @asynccontextmanager
     async def throttle(
-        self, consumer: Optional[str] = None, priority: Optional[ThrottlePriority] = None
+        self, *, consumer: Optional[str] = None, priority: Optional[ThrottlePriority] = None
     ) -> AsyncIterator[ThrottleResult]:
         check_queue_and_quotas_result = self._check_queue(priority) and self._check_quotas(consumer, priority)
         if not check_queue_and_quotas_result:

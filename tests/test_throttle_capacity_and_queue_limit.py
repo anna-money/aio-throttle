@@ -20,8 +20,7 @@ class Server:
         self.delay = delay
 
     async def handle(self, consumer=None):
-        async with self.throttler.throttle(consumer) as result:
-            logger.debug(self.throttler.stats)
+        async with self.throttler.throttle(consumer=consumer) as result:
             if not result:
                 return FAILED
             await sleep(self.delay)
