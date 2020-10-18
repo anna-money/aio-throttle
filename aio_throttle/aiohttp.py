@@ -11,6 +11,11 @@ from .throttle import ThrottlePriority, Throttler
 HANDLER = Callable[[Request], Awaitable[Response]]
 MIDDLEWARE = Callable[[Request, HANDLER], Awaitable[StreamResponse]]
 
+__all__ = (
+    "setup_throttling",
+    "throttling_middleware",
+)
+
 
 def setup_throttling(
     app: Application,
