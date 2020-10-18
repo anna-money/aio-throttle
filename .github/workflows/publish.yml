@@ -1,11 +1,13 @@
-# This workflows will upload a Python Package using Twine when a release is created
-# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
-
 name: publish package
 
 on:
   push:
     branches: [ master ]
+
+env:
+  TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+  TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+  TWINE_REPOSITORY_URL: https://upload.pypi.org/legacy/
 
 jobs:
   deploy:
@@ -22,9 +24,6 @@ jobs:
       run: |
         make deps
     - name: Build and publish
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        python setup.py sdist bdist_wheel
-        twine upload dist/*
+        python3 setup.py sdist bdist_wheel
+        python3 -m twine upload dist/*
