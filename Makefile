@@ -1,23 +1,18 @@
-all: test
+all: deps lint test
 
-install-dev:
-	@pip install -r requirements-dev.txt
+deps:
+	@python3 -m pip install --upgrade pip && pip3 install -r requirements-dev.txt
 
+black:
+	@black --line-length 120 aio_throttle tests
 
-black: install-dev
-	@black --line-length 120 --target-version py37 aio_throttle tests
-
-
-mypy: flake8
+mypy:
 	@mypy --strict aio_throttle
 
-
-flake8: black
+flake8:
 	@flake8 --max-line-length 120 --ignore C901,C812,E203 --extend-ignore W503 aio_throttle tests
 
+lint: black flake8 mypy
 
-test: mypy
-	@python -m pytest -vv --rootdir tests .
-
-
-.PHONY: all mypy flake8 black install-dev test
+test:
+	@python3 -m pytest -vv --rootdir tests .

@@ -42,14 +42,14 @@ class ThrottleResult(str, Enum):
 
 @dataclass(frozen=True)
 class ThrottleStats:
-    __slots__ = [
+    __slots__ = (
         "available_capacity",
         "capacity_limit",
         "queue_size",
         "queue_limit",
         "consumers_used_capacity",
         "priorities_used_capacity",
-    ]
+    )
 
     available_capacity: int
     capacity_limit: int
@@ -60,7 +60,7 @@ class ThrottleStats:
 
 
 class Throttler:
-    __slots__ = [
+    __slots__ = (
         "_semaphore",
         "_queue_limit",
         "_capacity_limit",
@@ -69,7 +69,7 @@ class Throttler:
         "_priority_quota",
         "_priorities_used_capacity",
         "_quota",
-    ]
+    )
 
     def __init__(
         self,

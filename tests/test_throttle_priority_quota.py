@@ -64,7 +64,7 @@ async def test(capacity_limit, max_priority_fractions, normal_counts, critical_c
 @pytest.mark.parametrize(
     "capacity_limit, queue_limit, counts, multiplier", [(1, 1, (2, 0), 2), (1, 2, (2, 1), 2), (1, 2, (2, 2), 2)]
 )
-async def test_sheddable_queueing(capacity_limit, queue_limit, counts, multiplier):
+async def test_low_priority_queueing(capacity_limit, queue_limit, counts, multiplier):
     throttler = Throttler(capacity_limit, queue_limit)
     server = Server(DELAY, throttler)
 
