@@ -7,7 +7,7 @@ black:
 	@black --line-length 120 aio_throttle tests
 
 mypy:
-	@mypy --strict aio_throttle
+	@mypy --strict --ignore-missing-imports aio_throttle
 
 flake8:
 	@flake8 --max-line-length 120 --ignore C901,C812,E203 --extend-ignore W503 aio_throttle tests
