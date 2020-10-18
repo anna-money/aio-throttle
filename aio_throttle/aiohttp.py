@@ -5,8 +5,9 @@ from aiohttp.web_middlewares import middleware
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response, StreamResponse
 
+from .abc import ThrottlerBase, ThrottlePriority
 from .quotas import MaxFractionCapacityQuota, ThrottleCapacityQuota, ThrottleQuota
-from .throttle import ThrottlePriority, Throttler
+from .throttle import Throttler
 
 HANDLER = Callable[[Request], Awaitable[Response]]
 MIDDLEWARE = Callable[[Request, HANDLER], Awaitable[StreamResponse]]
@@ -24,14 +25,19 @@ def setup_throttling(
     consumer_quotas: Optional[List[ThrottleCapacityQuota[str]]] = None,
     priority_quotas: Optional[List[ThrottleCapacityQuota[ThrottlePriority]]] = None,
     quotas: Optional[List[ThrottleQuota]] = None,
+    extensions: Optional[List[Callable[[ThrottlerBase], ThrottlerBase]]] = None,
 ) -> None:
-    app["AIOTHROTTLER"] = Throttler(
+    throttler: ThrottlerBase = Throttler(
         capacity_limit=capacity_limit,
         queue_limit=queue_limit,
         consumer_quotas=consumer_quotas or [MaxFractionCapacityQuota[str](0.7)],
         priority_quotas=priority_quotas or [MaxFractionCapacityQuota[ThrottlePriority](0.9, ThrottlePriority.NORMAL)],
         quotas=quotas,
     )
+    if extensions:
+        for extension in extensions:
+            throttler = extension(throttler)
+    app["AIOTHROTTLER"] = throttler
 
 
 def throttling_middleware(
@@ -47,10 +53,10 @@ def throttling_middleware(
         if ignored_paths is not None and path in ignored_paths:
             return await handler(request)
 
-        throttler: Throttler = request.app["AIOTHROTTLER"]
+        throttler: ThrottlerBase = request.app["AIOTHROTTLER"]
         consumer = request.headers.get(consumer_header_name, "unknown").lower()
         priority = ThrottlePriority.parse(request.headers.get(priority_header_name))
-        async with throttler.throttle(consumer, priority) as throttle_result:
+        async with throttler.throttle(consumer=consumer, priority=priority) as throttle_result:
             if throttle_result:
                 return await handler(request)
 

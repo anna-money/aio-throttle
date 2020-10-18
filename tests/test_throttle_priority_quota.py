@@ -20,10 +20,7 @@ class Server:
         self.delay = delay
 
     async def handle(self, priority):
-        async with self.throttler.throttle(None, priority) as result:
-            logger.debug(
-                "Throttling result of result with priority %s is %s, stats %s", priority, result, self.throttler.stats
-            )
+        async with self.throttler.throttle(priority=priority) as result:
             if not result:
                 return FAILED
             await sleep(self.delay)
