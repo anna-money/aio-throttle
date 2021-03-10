@@ -1,7 +1,7 @@
+import asyncio
+import collections
 import logging
 import time
-from asyncio import sleep, gather
-from collections import Counter
 
 import pytest
 
@@ -23,7 +23,7 @@ class Server:
         async with self.throttler.throttle(priority=priority) as result:
             if not result:
                 return FAILED
-            await sleep(self.delay)
+            await asyncio.sleep(self.delay)
             return SUCCEED
 
 
@@ -45,13 +45,15 @@ async def test(capacity_limit, max_priority_fractions, normal_counts, critical_c
     critical_tasks = list(map(lambda x: server.handle(ThrottlePriority.HIGH), range(0, sum(critical_counts))))
 
     start = time.monotonic()
-    normal_statuses, critical_statuses = await gather(gather(*normal_tasks), gather(*critical_tasks))
+    normal_statuses, critical_statuses = await asyncio.gather(
+        asyncio.gather(*normal_tasks), asyncio.gather(*critical_tasks)
+    )
     end = time.monotonic()
 
-    normal_counter = Counter(normal_statuses)
+    normal_counter = collections.Counter(normal_statuses)
     assert (normal_counter[SUCCEED], normal_counter[FAILED]) == normal_counts
 
-    critical_counter = Counter(critical_statuses)
+    critical_counter = collections.Counter(critical_statuses)
     assert (critical_counter[SUCCEED], critical_counter[FAILED]) == critical_counts
 
     assert multiplier * DELAY <= end - start <= (1.1 * multiplier * DELAY)
@@ -67,10 +69,10 @@ async def test_low_priority_queueing(capacity_limit, queue_limit, counts, multip
 
     handle_tasks = list(map(lambda x: server.handle(ThrottlePriority.LOW), range(0, sum(counts))))
     start = time.monotonic()
-    statuses = await gather(*handle_tasks)
+    statuses = await asyncio.gather(*handle_tasks)
     end = time.monotonic()
 
-    statuses_counter = Counter(statuses)
+    statuses_counter = collections.Counter(statuses)
     assert (statuses_counter[SUCCEED], statuses_counter[FAILED]) == counts
 
     assert multiplier * DELAY <= end - start <= (1.1 * multiplier * DELAY)

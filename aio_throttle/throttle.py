@@ -1,13 +1,14 @@
+import contextlib
 from collections import defaultdict
-from contextlib import asynccontextmanager
-from typing import AsyncIterator, Optional, DefaultDict, List
+from typing import AsyncIterator, Optional, DefaultDict, List, Dict
 
-from .abc import ThrottlerBase, ThrottlePriority, ThrottleResult, ThrottleStats
+from .metrics import MetricsProvider, NOOP_METRICS_PROVIDER
+from .base import ThrottlePriority, ThrottleResult, ThrottleStats
 from .internals import LifoSemaphore
 from .quotas import ThrottleCapacityQuota, CompositeThrottleCapacityQuota, ThrottleQuota, CompositeThrottleQuota
 
 
-class Throttler(ThrottlerBase):
+class Throttler:
     __slots__ = (
         "_semaphore",
         "_queue_limit",
@@ -17,6 +18,7 @@ class Throttler(ThrottlerBase):
         "_priority_quota",
         "_priorities_used_capacity",
         "_quota",
+        "_metrics_provider",
     )
 
     def __init__(
@@ -26,6 +28,7 @@ class Throttler(ThrottlerBase):
         consumer_quotas: Optional[List[ThrottleCapacityQuota[str]]] = None,
         priority_quotas: Optional[List[ThrottleCapacityQuota[ThrottlePriority]]] = None,
         quotas: Optional[List[ThrottleQuota]] = None,
+        metrics_provider: MetricsProvider = NOOP_METRICS_PROVIDER,
     ):
         if capacity_limit < 1:
             raise ValueError("Throttler capacity_limit value must be >= 1")
@@ -40,6 +43,62 @@ class Throttler(ThrottlerBase):
         self._priorities_used_capacity: DefaultDict[ThrottlePriority, int] = defaultdict(int)
         self._priority_quota = CompositeThrottleCapacityQuota(priority_quotas or [])
         self._quota = CompositeThrottleQuota(quotas or [])
+        self._metrics_provider = metrics_provider
+
+    @property
+    def stats(self) -> ThrottleStats:
+        return ThrottleStats(
+            self._semaphore.available,
+            self._capacity_limit,
+            self._semaphore.waiting,
+            self._queue_limit,
+            self._consumers_used_capacity,
+            self._priorities_used_capacity,
+        )
+
+    @contextlib.asynccontextmanager
+    async def throttle(
+        self, *, consumer: Optional[str] = None, priority: Optional[ThrottlePriority] = None
+    ) -> AsyncIterator[ThrottleResult]:
+        check_queue_and_quotas_result = self._check_queue(priority) and self._check_quotas(consumer, priority)
+        if not check_queue_and_quotas_result:
+            self._capture_throttled_request_metric(consumer, priority, check_queue_and_quotas_result)
+            yield check_queue_and_quotas_result
+        elif self._acquire_capacity_slot_no_wait():
+            try:
+                self._increment_counters(consumer, priority)
+                yield ThrottleResult.ACCEPTED
+            finally:
+                self._decrement_counters(consumer, priority)
+                self._release_capacity_slot()
+        else:
+            await self._acquire_capacity_slot()
+            check_quota_result = self._check_quotas(consumer, priority)
+            if not check_quota_result:
+                try:
+                    self._capture_throttled_request_metric(consumer, priority, check_queue_and_quotas_result)
+                    yield check_quota_result
+                finally:
+                    self._release_capacity_slot()
+            else:
+                try:
+                    self._increment_counters(consumer, priority)
+                    yield ThrottleResult.ACCEPTED
+                finally:
+                    self._decrement_counters(consumer, priority)
+                    self._release_capacity_slot()
+
+    def _capture_throttled_request_metric(
+        self, consumer: Optional[str], priority: Optional[ThrottlePriority], result: ThrottleResult,
+    ) -> None:
+        tags: Dict[str, str] = {}
+        if consumer is not None:
+            tags["consumer"] = consumer
+        if priority is not None:
+            tags["priority"] = str(priority)
+        tags["result"] = str(result)
+
+        self._metrics_provider.increment_counter("aio_throttle_requests", tags)
 
     def _check_quotas(
         self, consumer: Optional[str] = None, priority: Optional[ThrottlePriority] = None
@@ -85,44 +144,3 @@ class Throttler(ThrottlerBase):
 
     def _release_capacity_slot(self) -> None:
         self._semaphore.release()
-
-    @property
-    def stats(self) -> ThrottleStats:
-        return ThrottleStats(
-            self._semaphore.available,
-            self._capacity_limit,
-            self._semaphore.waiting,
-            self._queue_limit,
-            self._consumers_used_capacity,
-            self._priorities_used_capacity,
-        )
-
-    @asynccontextmanager
-    async def throttle(
-        self, *, consumer: Optional[str] = None, priority: Optional[ThrottlePriority] = None
-    ) -> AsyncIterator[ThrottleResult]:
-        check_queue_and_quotas_result = self._check_queue(priority) and self._check_quotas(consumer, priority)
-        if not check_queue_and_quotas_result:
-            yield check_queue_and_quotas_result
-        elif self._acquire_capacity_slot_no_wait():
-            try:
-                self._increment_counters(consumer, priority)
-                yield ThrottleResult.ACCEPTED
-            finally:
-                self._decrement_counters(consumer, priority)
-                self._release_capacity_slot()
-        else:
-            await self._acquire_capacity_slot()
-            check_quota_result = self._check_quotas(consumer, priority)
-            if not check_quota_result:
-                try:
-                    yield check_quota_result
-                finally:
-                    self._release_capacity_slot()
-            else:
-                try:
-                    self._increment_counters(consumer, priority)
-                    yield ThrottleResult.ACCEPTED
-                finally:
-                    self._decrement_counters(consumer, priority)
-                    self._release_capacity_slot()

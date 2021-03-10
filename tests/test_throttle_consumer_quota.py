@@ -1,7 +1,7 @@
+import asyncio
+import collections
 import logging
 import time
-from asyncio import sleep, gather
-from collections import Counter
 
 import pytest
 
@@ -26,7 +26,7 @@ class Server:
         async with self.throttler.throttle(consumer=consumer) as result:
             if not result:
                 return FAILED
-            await sleep(self.delay)
+            await asyncio.sleep(self.delay)
             return SUCCEED
 
 
@@ -44,10 +44,10 @@ async def test_any_consumer_quota_workload(
     handle_tasks = list(map(lambda x: server.handle("consumer"), range(0, succeed_count + failed_count)))
 
     start = time.monotonic()
-    statuses = await gather(*handle_tasks)
+    statuses = await asyncio.gather(*handle_tasks)
     end = time.monotonic()
 
-    counter = Counter(statuses)
+    counter = collections.Counter(statuses)
     assert counter[SUCCEED] == succeed_count
     assert counter[FAILED] == failed_count
     assert multiplier * DELAY <= end - start <= (1.1 * multiplier * DELAY)
@@ -85,16 +85,16 @@ async def test_consumers_quota_workload(
     )
 
     start = time.monotonic()
-    first_consumer_statuses, second_consumer_statuses = await gather(
-        gather(*first_consumer_handle_tasks), gather(*second_consumer_handle_tasks)
+    first_consumer_statuses, second_consumer_statuses = await asyncio.gather(
+        asyncio.gather(*first_consumer_handle_tasks), asyncio.gather(*second_consumer_handle_tasks)
     )
     end = time.monotonic()
 
-    counter = Counter(first_consumer_statuses)
+    counter = collections.Counter(first_consumer_statuses)
     assert counter[SUCCEED] == first_consumer_succeed_count
     assert counter[FAILED] == first_consumer_failed_count
 
-    counter = Counter(second_consumer_statuses)
+    counter = collections.Counter(second_consumer_statuses)
     assert counter[SUCCEED] == second_consumer_succeed_count
     assert counter[FAILED] == second_consumer_failed_count
 

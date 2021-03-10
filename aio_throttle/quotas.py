@@ -1,5 +1,5 @@
-from abc import abstractmethod, ABC
-from random import Random
+import abc
+import random
 from typing import TypeVar, Generic, List, Optional, Any
 
 TResource = TypeVar("TResource")
@@ -8,7 +8,7 @@ TResource = TypeVar("TResource")
 class ThrottleCapacityQuota(Generic[TResource]):
     __slots__ = ()
 
-    @abstractmethod
+    @abc.abstractmethod
     def can_be_accepted(self, resource: TResource, capacity_used: int, capacity_limit: int) -> bool:
         ...
 
@@ -42,10 +42,10 @@ class MaxFractionCapacityQuota(ThrottleCapacityQuota[TResource]):
         return (used_capacity * 1.0 / capacity_limit) <= self._max_fraction
 
 
-class ThrottleQuota(ABC):
+class ThrottleQuota(abc.ABC):
     __slots__ = ()
 
-    @abstractmethod
+    @abc.abstractmethod
     def can_be_accepted(self) -> bool:
         ...
 
@@ -71,7 +71,7 @@ class RandomRejectThrottleQuota(ThrottleQuota):
             raise ValueError("MaxFractionCapacityQuota max_fraction value must be in range [0, 1]")
 
         self._reject_probability = reject_probability
-        self._random = Random(seed)
+        self._random = random.Random(seed)
 
     def can_be_accepted(self) -> bool:
         return self._reject_probability == 0 or self._random.random() < self._reject_probability
