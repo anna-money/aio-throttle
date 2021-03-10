@@ -1,5 +1,5 @@
 import asyncio
-from asyncio import Future
+
 from typing import List
 
 
@@ -11,7 +11,7 @@ class LifoSemaphore:
             raise ValueError("LifoSemaphore initial value must be >= 0")
         self._limit = initial
         self._available = initial
-        self._waiters: List[Future[None]] = []
+        self._waiters: List[asyncio.Future[None]] = []
         self._loop = asyncio.get_event_loop()
 
     def _wake_up_next(self) -> None:

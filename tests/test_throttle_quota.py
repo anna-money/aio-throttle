@@ -1,8 +1,7 @@
+import asyncio
+import collections
 import logging
 import time
-from asyncio import sleep, gather
-from collections import Counter
-
 import pytest
 
 from aio_throttle import Throttler, RandomRejectThrottleQuota
@@ -23,7 +22,7 @@ class Server:
         async with self.throttler.throttle() as result:
             if not result:
                 return FAILED
-            await sleep(self.delay)
+            await asyncio.sleep(self.delay)
             return SUCCEED
 
 
@@ -39,10 +38,10 @@ async def test(capacity_limit, reject_probability, succeed_count, failed_count, 
     handle_tasks = list(map(lambda x: server.handle(), range(0, succeed_count + failed_count)))
 
     start = time.monotonic()
-    statuses = await gather(*handle_tasks)
+    statuses = await asyncio.gather(*handle_tasks)
     end = time.monotonic()
 
-    counter = Counter(statuses)
+    counter = collections.Counter(statuses)
     assert counter[SUCCEED] == succeed_count
     assert counter[FAILED] == failed_count
     assert multiplier * DELAY <= end - start <= (1.1 * multiplier * DELAY)

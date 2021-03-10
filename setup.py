@@ -1,6 +1,5 @@
+import pathlib
 import re
-from pathlib import Path
-
 import setuptools
 
 with open("README.md", "r") as fh:
@@ -8,7 +7,7 @@ with open("README.md", "r") as fh:
 
 
 def read(*parts):
-    return Path(__file__).resolve().parent.joinpath(*parts).read_text().strip()
+    return pathlib.Path(__file__).resolve().parent.joinpath(*parts).read_text().strip()
 
 
 def read_version():
