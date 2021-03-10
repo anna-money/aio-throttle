@@ -5,6 +5,7 @@ import aiohttp.web_middlewares
 import aiohttp.web_request
 import aiohttp.web_response
 
+from . import MetricsProvider, NOOP_METRICS_PROVIDER
 from .base import ThrottlePriority
 from .quotas import MaxFractionCapacityQuota, ThrottleCapacityQuota, ThrottleQuota
 from .throttle import Throttler
@@ -14,6 +15,7 @@ _MIDDLEWARE = Callable[[aiohttp.web_request.Request, _HANDLER], Awaitable[aiohtt
 
 
 def aiohttp_middleware_factory(
+    *,
     capacity_limit: int = 128,
     queue_limit: int = 512,
     consumer_quotas: Optional[List[ThrottleCapacityQuota[str]]] = None,
@@ -24,6 +26,7 @@ def aiohttp_middleware_factory(
     throttled_response_status_code: int = 503,
     throttled_response_reason_header_name: str = "X-Throttled-Reason",
     ignored_paths: Optional[Set[str]] = None,
+    metrics_provider: MetricsProvider = NOOP_METRICS_PROVIDER,
 ) -> _MIDDLEWARE:
     throttler = Throttler(
         capacity_limit=capacity_limit,
@@ -31,6 +34,7 @@ def aiohttp_middleware_factory(
         consumer_quotas=consumer_quotas or [MaxFractionCapacityQuota[str](0.7)],
         priority_quotas=priority_quotas or [MaxFractionCapacityQuota[ThrottlePriority](0.9, ThrottlePriority.NORMAL)],
         quotas=quotas,
+        metrics_provider=metrics_provider,
     )
 
     @aiohttp.web_middlewares.middleware
