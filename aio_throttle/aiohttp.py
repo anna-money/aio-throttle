@@ -5,7 +5,7 @@ import aiohttp.web_middlewares
 import aiohttp.web_request
 import aiohttp.web_response
 
-from . import MetricsProvider, NOOP_METRICS_PROVIDER
+from .metrics import MetricsProvider, NOOP_METRICS_PROVIDER
 from .base import ThrottlePriority
 from .quotas import MaxFractionCapacityQuota, ThrottleCapacityQuota, ThrottleQuota
 from .throttle import Throttler
