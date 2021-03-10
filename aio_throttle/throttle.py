@@ -1,11 +1,11 @@
 import contextlib
-from collections import defaultdict
-from typing import AsyncIterator, Optional, DefaultDict, List, Dict
+from typing import AsyncIterator, Optional, List, Dict
 
-from .metrics import MetricsProvider, NOOP_METRICS_PROVIDER
 from .base import ThrottlePriority, ThrottleResult, ThrottleStats
 from .internals import LifoSemaphore
+from .metrics import MetricsProvider, NOOP_METRICS_PROVIDER
 from .quotas import ThrottleCapacityQuota, CompositeThrottleCapacityQuota, ThrottleQuota, CompositeThrottleQuota
+from .utils import increment_counter, decrement_counter
 
 
 class Throttler:
@@ -38,9 +38,9 @@ class Throttler:
         self._capacity_limit: int = capacity_limit
         self._queue_limit: int = queue_limit
         self._semaphore: LifoSemaphore = LifoSemaphore(capacity_limit)
-        self._consumers_used_capacity: DefaultDict[str, int] = defaultdict(int)
+        self._consumers_used_capacity: Dict[str, int] = {}
         self._consumer_quota = CompositeThrottleCapacityQuota(consumer_quotas or [])
-        self._priorities_used_capacity: DefaultDict[ThrottlePriority, int] = defaultdict(int)
+        self._priorities_used_capacity: Dict[ThrottlePriority, int] = {}
         self._priority_quota = CompositeThrottleCapacityQuota(priority_quotas or [])
         self._quota = CompositeThrottleQuota(quotas or [])
         self._metrics_provider = metrics_provider
@@ -107,11 +107,11 @@ class Throttler:
             return ThrottleResult.REJECTED_DUE_TO_QUOTA
 
         if priority is not None:
-            priority_used_capacity = self._priorities_used_capacity[priority]
+            priority_used_capacity = self._priorities_used_capacity.get(priority, 0)
             if not self._priority_quota.can_be_accepted(priority, priority_used_capacity + 1, self._capacity_limit):
                 return ThrottleResult.REJECTED_DUE_TO_PRIORITY_QUOTA
         if consumer is not None:
-            consumer_used_capacity = self._consumers_used_capacity[consumer]
+            consumer_used_capacity = self._consumers_used_capacity.get(consumer, 0)
             if not self._consumer_quota.can_be_accepted(consumer, consumer_used_capacity + 1, self._capacity_limit):
                 return ThrottleResult.REJECTED_DUE_TO_CONSUMER_QUOTA
         return ThrottleResult.ACCEPTED
@@ -126,15 +126,15 @@ class Throttler:
 
     def _increment_counters(self, consumer: Optional[str] = None, priority: Optional[ThrottlePriority] = None) -> None:
         if priority is not None:
-            self._priorities_used_capacity[priority] += 1
+            increment_counter(self._priorities_used_capacity, priority)
         if consumer is not None:
-            self._consumers_used_capacity[consumer] += 1
+            increment_counter(self._consumers_used_capacity, consumer)
 
     def _decrement_counters(self, consumer: Optional[str] = None, priority: Optional[ThrottlePriority] = None) -> None:
         if consumer is not None:
-            self._consumers_used_capacity[consumer] -= 1
+            decrement_counter(self._consumers_used_capacity, consumer)
         if priority is not None:
-            self._priorities_used_capacity[priority] -= 1
+            decrement_counter(self._priorities_used_capacity, priority)
 
     def _acquire_capacity_slot_no_wait(self) -> bool:
         return self._semaphore.acquire_no_wait()
