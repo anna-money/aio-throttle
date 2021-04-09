@@ -4,7 +4,7 @@ pytest-runner==5.1
 flake8==3.8.4
 mypy==0.790
 black==19.10b0
-aiohttp==3.7.4
+aiohttp==3.7.4.post0
 prometheus_client==0.9.0
 setuptools==50.3.2
 wheel==0.35.1
