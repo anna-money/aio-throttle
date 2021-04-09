@@ -8,4 +8,4 @@ aiohttp==3.7.4
 prometheus_client==0.10.1
 setuptools==50.3.2
 wheel==0.35.1
-twine==3.2.0
+twine==3.4.1
