@@ -1,5 +1,5 @@
 pytest==6.2.3
-pytest-asyncio==0.14.0
+pytest-asyncio==0.15.1
 pytest-runner==5.3.0
 flake8==3.9.1
 mypy==0.790
