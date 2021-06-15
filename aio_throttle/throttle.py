@@ -89,7 +89,10 @@ class Throttler:
                     self._release_capacity_slot()
 
     def _capture_throttled_request_metric(
-        self, consumer: Optional[str], priority: Optional[ThrottlePriority], result: ThrottleResult,
+        self,
+        consumer: Optional[str],
+        priority: Optional[ThrottlePriority],
+        result: ThrottleResult,
     ) -> None:
         tags: Dict[str, str] = {}
         if consumer is not None:

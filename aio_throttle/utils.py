@@ -1,6 +1,6 @@
 from typing import TypeVar, Dict
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def increment_counter(dictionary: Dict[T, int], key: T) -> None:
