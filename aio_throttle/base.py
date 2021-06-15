@@ -1,6 +1,6 @@
 import dataclasses
 import enum
-from typing import Optional, Mapping, cast
+from typing import Optional, Mapping
 
 
 class ThrottlePriority(str, enum.Enum):
@@ -9,7 +9,7 @@ class ThrottlePriority(str, enum.Enum):
     LOW = "low"
 
     def __str__(self) -> str:
-        return cast(str, self.value)
+        return self.value
 
     @staticmethod
     def parse(value: Optional[str]) -> "ThrottlePriority":
@@ -32,7 +32,7 @@ class ThrottleResult(str, enum.Enum):
         return self == self.ACCEPTED
 
     def __str__(self) -> str:
-        return cast(str, self.value)
+        return self.value
 
 
 @dataclasses.dataclass(frozen=True)
