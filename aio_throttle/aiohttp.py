@@ -1,9 +1,10 @@
-from typing import Awaitable, Callable, Set, Optional, List
+from typing import Awaitable, Callable, Set, Optional, List, Any
 
 import aiohttp.web_exceptions
 import aiohttp.web_middlewares
 import aiohttp.web_request
 import aiohttp.web_response
+import aiohttp.web
 
 from .metrics import MetricsProvider, NOOP_METRICS_PROVIDER
 from .base import ThrottlePriority
@@ -12,6 +13,14 @@ from .throttle import Throttler
 
 _HANDLER = Callable[[aiohttp.web_request.Request], Awaitable[aiohttp.web_response.StreamResponse]]
 _MIDDLEWARE = Callable[[aiohttp.web_request.Request, _HANDLER], Awaitable[aiohttp.web_response.StreamResponse]]
+
+
+def aiohttp_ignore() -> Callable[..., Any]:
+    def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
+        setattr(func, "__aio_throttle_ignore__", True)
+        return func
+
+    return wrapper
 
 
 def aiohttp_middleware_factory(
@@ -31,8 +40,12 @@ def aiohttp_middleware_factory(
     throttler = Throttler(
         capacity_limit=capacity_limit,
         queue_limit=queue_limit,
-        consumer_quotas=consumer_quotas or [MaxFractionCapacityQuota[str](0.7)],
-        priority_quotas=priority_quotas or [MaxFractionCapacityQuota[ThrottlePriority](0.9, ThrottlePriority.NORMAL)],
+        consumer_quotas=(consumer_quotas if consumer_quotas is not None else [MaxFractionCapacityQuota[str](0.7)]),
+        priority_quotas=(
+            priority_quotas
+            if priority_quotas is not None
+            else [MaxFractionCapacityQuota[ThrottlePriority](0.9, ThrottlePriority.NORMAL)]
+        ),
         quotas=quotas,
         metrics_provider=metrics_provider,
     )
@@ -41,8 +54,7 @@ def aiohttp_middleware_factory(
     async def _throttling_middleware(
         request: aiohttp.web_request.Request, handler: _HANDLER
     ) -> aiohttp.web_response.StreamResponse:
-        path = request.match_info.route.resource.canonical if request.match_info.route.resource else request.path
-        if ignored_paths is not None and path in ignored_paths:
+        if is_ignored_by_decorator(request) or is_ignored_by_list(request, ignored_paths):
             return await handler(request)
 
         consumer = request.headers.get(consumer_header_name, "unknown").lower()
@@ -57,3 +69,25 @@ def aiohttp_middleware_factory(
             )
 
     return _throttling_middleware
+
+
+def is_ignored_by_decorator(request: aiohttp.web_request.Request) -> bool:
+    handler = request.match_info.handler
+    ignored = getattr(handler, "__aio_throttle_ignore__", False)
+    if not ignored and _is_subclass(handler, aiohttp.web.View):
+        method_handler = getattr(handler, request.method.lower(), None)
+        if method_handler is not None:
+            ignored = getattr(method_handler, "__aio_throttle_ignore__", False)
+    return bool(ignored)
+
+
+def is_ignored_by_list(request: aiohttp.web_request.Request, ignored_paths: Optional[Set[str]]) -> bool:
+    path = request.match_info.route.resource.canonical if request.match_info.route.resource else request.path
+    return ignored_paths is not None and path in ignored_paths
+
+
+def _is_subclass(cls: Any, cls_info: type) -> bool:
+    try:
+        return issubclass(cls, cls_info)
+    except TypeError:
+        return False

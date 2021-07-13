@@ -11,7 +11,7 @@ from .metrics import MetricsProvider, NoopMetricsProvider, NOOP_METRICS_PROVIDER
 try:
     import aiohttp  # noqa
 
-    from .aiohttp import aiohttp_middleware_factory  # noqa
+    from .aiohttp import aiohttp_middleware_factory, aiohttp_ignore  # noqa
 except ImportError:
     pass
 
