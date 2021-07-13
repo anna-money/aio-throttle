@@ -54,7 +54,7 @@ def aiohttp_middleware_factory(
     async def _throttling_middleware(
         request: aiohttp.web_request.Request, handler: _HANDLER
     ) -> aiohttp.web_response.StreamResponse:
-        if is_ignored_by_decorator(request) or is_ignored_by_list(request, ignored_paths):
+        if is_ignored_by_decorator(request) or is_ignored_by_set(request, ignored_paths):
             return await handler(request)
 
         consumer = request.headers.get(consumer_header_name, "unknown").lower()
@@ -81,7 +81,7 @@ def is_ignored_by_decorator(request: aiohttp.web_request.Request) -> bool:
     return bool(ignored)
 
 
-def is_ignored_by_list(request: aiohttp.web_request.Request, ignored_paths: Optional[Set[str]]) -> bool:
+def is_ignored_by_set(request: aiohttp.web_request.Request, ignored_paths: Optional[Set[str]]) -> bool:
     path = request.match_info.route.resource.canonical if request.match_info.route.resource else request.path
     return ignored_paths is not None and path in ignored_paths
 
