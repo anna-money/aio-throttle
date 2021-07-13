@@ -37,7 +37,7 @@ async def server(aiohttp_client):
     app.router.add_get("/", handler)
     app.router.add_get("/ignore-handler", handler_with_suppress)
     app.router.add_get("/ignore-view", ViewWithSuppress)
-    app.router.add_get("/ignore", handler_with_suppress)
+    app.router.add_get("/ignore", handler)
     return await aiohttp_client(app)
 
 

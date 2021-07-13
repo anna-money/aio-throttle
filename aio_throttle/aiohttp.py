@@ -13,11 +13,12 @@ from .throttle import Throttler
 
 _HANDLER = Callable[[aiohttp.web_request.Request], Awaitable[aiohttp.web_response.StreamResponse]]
 _MIDDLEWARE = Callable[[aiohttp.web_request.Request, _HANDLER], Awaitable[aiohttp.web_response.StreamResponse]]
+_IGNORE_KEY = "__aio_throttle_ignore__"
 
 
 def aiohttp_ignore() -> Callable[..., Any]:
     def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
-        setattr(func, "__aio_throttle_ignore__", True)
+        setattr(func, _IGNORE_KEY, True)
         return func
 
     return wrapper
@@ -54,7 +55,7 @@ def aiohttp_middleware_factory(
     async def _throttling_middleware(
         request: aiohttp.web_request.Request, handler: _HANDLER
     ) -> aiohttp.web_response.StreamResponse:
-        if is_ignored_by_decorator(request) or is_ignored_by_set(request, ignored_paths):
+        if _is_ignored_by_decorator(request) or _is_ignored_by_path(request, ignored_paths):
             return await handler(request)
 
         consumer = request.headers.get(consumer_header_name, "unknown").lower()
@@ -71,17 +72,17 @@ def aiohttp_middleware_factory(
     return _throttling_middleware
 
 
-def is_ignored_by_decorator(request: aiohttp.web_request.Request) -> bool:
+def _is_ignored_by_decorator(request: aiohttp.web_request.Request) -> bool:
     handler = request.match_info.handler
-    ignored = getattr(handler, "__aio_throttle_ignore__", False)
+    ignored = getattr(handler, _IGNORE_KEY, False)
     if not ignored and _is_subclass(handler, aiohttp.web.View):
         method_handler = getattr(handler, request.method.lower(), None)
         if method_handler is not None:
-            ignored = getattr(method_handler, "__aio_throttle_ignore__", False)
+            ignored = getattr(method_handler, _IGNORE_KEY, False)
     return bool(ignored)
 
 
-def is_ignored_by_set(request: aiohttp.web_request.Request, ignored_paths: Optional[Set[str]]) -> bool:
+def _is_ignored_by_path(request: aiohttp.web_request.Request, ignored_paths: Optional[Set[str]]) -> bool:
     path = request.match_info.route.resource.canonical if request.match_info.route.resource else request.path
     return ignored_paths is not None and path in ignored_paths
 
