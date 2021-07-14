@@ -21,29 +21,43 @@ async with throttler.throttle(consumer=consumer, priority=priority) as result:
     ... # check if result is ThrottleResult.ACCEPTED or not
 ```
 
-Example of an integration with aiohttp and prometheus_client
+Example of an integration with aiohttp and prometheus_client()
 ```python
-from aiohttp import web
-from aiohttp.web_app import Application
-from aiohttp.web_request import Request
-from aiohttp.web_response import Response
+import aiohttp
+import aiohttp.web
+import aiohttp.web_request
+import aiohttp.web_response
 
-from aio_throttle.aiohttp import throttling_middleware, setup_throttling
-from aio_throttle.prometheus import prometheus_aware_throttler, build_throttle_results_counter
-
-throttle_results_counter = build_throttle_results_counter()
+import aio_throttle
 
 
-async def ok(_: Request) -> Response:
-    return Response()
+@aio_throttle.aiohttp_ignore() # do not throttle this handler 
+async def healthcheck(_: aiohttp.web_request.Request) -> aiohttp.web_response.Response:
+    return aiohttp.web_response.Response()
 
 
-async def create_app() -> Application:
-    app = web.Application(middlewares=[throttling_middleware()])
-    setup_throttling(app, extensions=[prometheus_aware_throttler(throttle_results_counter=throttle_results_counter)])
-    app.router.add_get("/", ok)
+async def authorize(_: aiohttp.web_request.Request) -> aiohttp.web_response.Response:
+    return aiohttp.web_response.Response()
+
+
+async def create_app() -> aiohttp.web.Application:
+    app = aiohttp.web.Application(middlewares=[
+        aio_throttle.aiohttp_middleware_factory(
+                capacity_limit=20,
+                queue_limit=100,
+                consumer_quotas=[aio_throttle.MaxFractionCapacityQuota[str](0.7)],
+                priority_quotas=[
+                    aio_throttle.MaxFractionCapacityQuota[aio_throttle.ThrottlePriority](
+                        0.9, aio_throttle.ThrottlePriority.NORMAL
+                    )
+                ],
+                metrics_provider=aio_throttle.PROMETHEUS_METRICS_PROVIDER,
+            ),
+    ])
+    app.router.add_get("/healthcheck", healthcheck)
+    app.router.add_post("/authorize", authorize)
     return app
 
 
-web.run_app(create_app(), port=8080, access_log=None)
+aiohttp.web.run_app(create_app(), port=8080, access_log=None)
 ```

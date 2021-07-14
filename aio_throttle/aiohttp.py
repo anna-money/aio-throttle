@@ -83,8 +83,11 @@ def _is_ignored_by_decorator(request: aiohttp.web_request.Request) -> bool:
 
 
 def _is_ignored_by_path(request: aiohttp.web_request.Request, ignored_paths: Optional[Set[str]]) -> bool:
+    if ignored_paths is None:
+        return False
+
     path = request.match_info.route.resource.canonical if request.match_info.route.resource else request.path
-    return ignored_paths is not None and path in ignored_paths
+    return path in ignored_paths
 
 
 def _is_subclass(cls: Any, cls_info: type) -> bool:

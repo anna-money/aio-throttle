@@ -30,7 +30,12 @@ async def server(aiohttp_client):
     app = aiohttp.web.Application(
         middlewares=[
             aio_throttle.aiohttp_middleware_factory(
-                capacity_limit=1, queue_limit=0, consumer_quotas=[], priority_quotas=[], ignored_paths={"/ignore"}
+                capacity_limit=1,
+                queue_limit=0,
+                consumer_quotas=[],
+                priority_quotas=[],
+                ignored_paths={"/ignore"},
+                metrics_provider=aio_throttle.PROMETHEUS_METRICS_PROVIDER,
             )
         ],
     )
