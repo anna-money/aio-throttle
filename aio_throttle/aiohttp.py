@@ -1,13 +1,13 @@
 from typing import Awaitable, Callable, Set, Optional, List, Any
 
+import aiohttp.web
 import aiohttp.web_exceptions
 import aiohttp.web_middlewares
 import aiohttp.web_request
 import aiohttp.web_response
-import aiohttp.web
 
-from .metrics import MetricsProvider, NOOP_METRICS_PROVIDER
 from .base import ThrottlePriority
+from .metrics import MetricsProvider, NOOP_METRICS_PROVIDER
 from .quotas import MaxFractionCapacityQuota, ThrottleCapacityQuota, ThrottleQuota
 from .throttle import Throttler
 
@@ -16,12 +16,12 @@ _MIDDLEWARE = Callable[[aiohttp.web_request.Request, _HANDLER], Awaitable[aiohtt
 _IGNORE_KEY = "__aio_throttle_ignore__"
 
 
-def aiohttp_ignore() -> Callable[..., Any]:
-    def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
-        setattr(func, _IGNORE_KEY, True)
-        return func
+def aiohttp_ignore(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
+    def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
+        setattr(f, _IGNORE_KEY, True)
+        return f
 
-    return wrapper
+    return wrapper if func is None else wrapper(func)  # type: ignore
 
 
 def aiohttp_middleware_factory(

@@ -22,7 +22,7 @@ async def server(aiohttp_client):
         return aiohttp.web_response.Response()
 
     class ViewWithSuppress(aiohttp.web.View):
-        @aio_throttle.aiohttp_ignore()
+        @aio_throttle.aiohttp_ignore
         async def get(self) -> aiohttp.web.StreamResponse:
             await asyncio.sleep(0.1)
             return aiohttp.web_response.Response()
