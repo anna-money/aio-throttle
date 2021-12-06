@@ -5,7 +5,7 @@ mypy==0.910
 black==21.10b0
 aiohttp==3.8.1
 prometheus_client==0.12.0
-setuptools==59.0.1
+setuptools==59.5.0
 wheel==0.37.0
 twine==3.6.0
 pytest-aiohttp==0.3.0
