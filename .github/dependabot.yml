@@ -6,7 +6,3 @@ updates:
     interval: daily
     time: "00:00"
   open-pull-requests-limit: 10
-  ignore:
-  - dependency-name: aiohttp
-    versions:
-    - 3.7.4.post0
