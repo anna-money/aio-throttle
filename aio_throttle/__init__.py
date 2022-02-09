@@ -23,7 +23,7 @@ except ImportError:
     pass
 
 
-__version__ = "1.6.2"
+__version__ = "1.7.0"
 
 version = f"{__version__}, Python {sys.version}"
 
