@@ -52,7 +52,7 @@ async def test_throttle(server):
         first, second = await asyncio.gather(client_session.get(url), client_session.get(url))
         async with first, second:
             assert first.status == 200
-            assert second.status == 503
+            assert second.status == 429
 
 
 async def test_ignore_throttle_for_handler(server):

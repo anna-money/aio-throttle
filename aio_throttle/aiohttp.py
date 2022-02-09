@@ -33,7 +33,7 @@ def aiohttp_middleware_factory(
     quotas: Optional[List[ThrottleQuota]] = None,
     consumer_header_name: str = "X-Service-Name",
     priority_header_name: str = "X-Request-Priority",
-    throttled_response_status_code: int = 503,
+    throttled_response_status_code: int = 429,
     throttled_response_reason_header_name: str = "X-Throttled-Reason",
     ignored_paths: Optional[Set[str]] = None,
     metrics_provider: MetricsProvider = NOOP_METRICS_PROVIDER,
