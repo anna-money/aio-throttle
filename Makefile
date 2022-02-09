@@ -16,3 +16,6 @@ lint: black flake8 mypy
 
 test:
 	@python3 -m pytest -vv --rootdir tests .
+
+pyenv:
+	echo aio-throttle > .python-version && pyenv install -s 3.10.2 && pyenv virtualenv -f 3.10.2 aio-throttle
