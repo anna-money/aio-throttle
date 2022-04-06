@@ -4,7 +4,7 @@ flake8==4.0.1
 mypy==0.931
 black==22.1.0
 aiohttp==3.8.1
-prometheus_client==0.13.1
+prometheus_client==0.14.0
 setuptools==60.8.1
 wheel==0.37.1
 twine==3.8.0
