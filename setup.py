@@ -30,7 +30,8 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/Pliner/aio-throttle",
     packages=["aio_throttle"],
-    classifiers=[],
+    license="MIT",
+    classifiers=["License :: OSI Approved :: MIT License"],
     python_requires='>=3.7',
     package_data={'aio_throttle': ['py.typed']},
 )
