@@ -1,7 +1,7 @@
 pytest==7.2.0
 pytest-runner==6.0.0
 flake8==5.0.4
-mypy==0.991
+mypy==1.0.0
 black==22.12.0
 aiohttp==3.8.3
 prometheus_client==0.13.1
